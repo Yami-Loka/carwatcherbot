@@ -1,3 +1,4 @@
+import os          # ← AJOUTER CETTE LIGNE
 import requests
 from bs4 import BeautifulSoup
 
