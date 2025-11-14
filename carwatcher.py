@@ -2,11 +2,10 @@ import os          # ← AJOUTER CETTE LIGNE
 import requests
 from bs4 import BeautifulSoup
 
-# --- Configuration directe ---
+# --- Configuration via variables d'environnement ---
 URL = os.getenv("WATCH_URL")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-
 
 def send_telegram(msg):
     requests.post(
@@ -14,14 +13,12 @@ def send_telegram(msg):
         data={"chat_id": TELEGRAM_CHAT_ID, "text": msg}
     )
 
-
 def fetch_car_list():
     r = requests.get(URL)
     r.raise_for_status()
     soup = BeautifulSoup(r.text, "html.parser")
     options = soup.find_all("option")
     return [o.get_text(strip=True) for o in options if o.get_text(strip=True)]
-
 
 def main():
     last_list = fetch_car_list()
@@ -46,7 +43,5 @@ def main():
     except Exception as e:
         send_telegram(f"⚠️ Erreur : {e}")
 
-
 if __name__ == "__main__":
     main()
-
