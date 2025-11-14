@@ -1,10 +1,10 @@
-import os
 import requests
 from bs4 import BeautifulSoup
 
-URL = os.getenv("WATCH_URL")
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+# --- Configuration directe ---
+URL = "https://www.odoo.com/fr_FR/salary_package/simulation/offer/29448?job_id=264&token=2b6b3ebf80c24cd0bceac5094cd92693"
+TELEGRAM_TOKEN = "8515800222:AAHpgtDHRRN-uugssRo5zT7EltojjqS7LDs"
+TELEGRAM_CHAT_ID = "491275817"
 
 
 def send_telegram(msg):
@@ -48,3 +48,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
