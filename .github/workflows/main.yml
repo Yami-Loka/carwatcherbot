@@ -1,0 +1,28 @@
+name: Car Watcher Bot
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'  # toutes les 15 minutes
+  workflow_dispatch:  # permet de lancer manuellement
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run bot
+        env:
+          WATCH_URL: ${{ secrets.WATCH_URL }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python carwatcher.py
