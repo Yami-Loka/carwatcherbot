@@ -1,4 +1,4 @@
-import os          # ← AJOUTER CETTE LIGNE
+import os
 import requests
 from bs4 import BeautifulSoup
 
@@ -7,18 +7,23 @@ URL = os.getenv("WATCH_URL")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
+
 def send_telegram(msg):
+    """Envoie un message sur Telegram"""
     requests.post(
         f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
         data={"chat_id": TELEGRAM_CHAT_ID, "text": msg}
     )
 
+
 def fetch_car_list():
+    """Récupère la liste des voitures depuis la page Odoo"""
     r = requests.get(URL)
     r.raise_for_status()
     soup = BeautifulSoup(r.text, "html.parser")
     options = soup.find_all("option")
     return [o.get_text(strip=True) for o in options if o.get_text(strip=True)]
+
 
 def main():
     last_list = fetch_car_list()
@@ -43,5 +48,7 @@ def main():
     except Exception as e:
         send_telegram(f"⚠️ Erreur : {e}")
 
+
 if __name__ == "__main__":
     main()
+
