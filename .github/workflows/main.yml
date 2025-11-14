@@ -21,8 +21,4 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run bot
-        env:
-          WATCH_URL: ${{ secrets.WATCH_URL }}
-          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python carwatcher.py
