@@ -2,7 +2,7 @@ name: Car Watcher Bot
 
 on:
   schedule:
-    - cron: "*/30 * * * *"   # toutes les 30 minutes
+    - cron: "*/30 * * * *"
   workflow_dispatch:
 
 jobs:
@@ -10,28 +10,59 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # --- Checkout du repo ---
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # --- Setup Python ---
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.12'
 
-      # --- Installation des dépendances si requirements.txt existe ---
       - name: Install dependencies if requirements.txt exists
         run: |
           if [ -f "requirements.txt" ]; then
             pip install -r requirements.txt
           fi
 
-      # --- Debug workspace et fichier ---
-      - name: Debug: show git info & workspace
+      - name: Debug workspace & script
         run: |
           echo "=== Git info ==="
           git --no-pager log -1 --pretty=fuller || true
           echo "Branch: $GITHUB_REF"
           echo "Commit: $GITHUB_SHA"
+          echo "=== Workspace ==="
+          pwd
+          ls -la
+          echo "=== carwatcher.py content (first 50 lines) ==="
+          if [ -f carwatcher.py ]; then
+            head -n 50 carwatcher.py
+          else
+            echo "carwatcher.py not found"
+          fi
+          echo "=== Python & packages ==="
+          python -V
+          pip freeze | head -n 30
+
+      - name: Run bot with retry
+        env:
+          WATCH_URL: ${{ secrets.WATCH_URL }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          echo "🚀 Running carwatcher.py with retries"
+          MAX_RETRIES=3
+          for i in $(seq 1 $MAX_RETRIES); do
+            python carwatcher.py && break || {
+              echo "⚠️ carwatcher.py failed (attempt $i/$MAX_RETRIES)"
+              if [ $i -lt $MAX_RETRIES ]; then
+                WAIT=$((15 * i))
+                echo "⏳ Waiting $WAIT seconds before retry..."
+                sleep $WAIT
+              else
+                echo "❌ Max retries reached. Exiting."
+                exit 1
+              fi
+            }
+          done
+
 
