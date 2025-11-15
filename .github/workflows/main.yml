@@ -1,28 +1,41 @@
+
 name: Car Watcher Bot
 
 on:
   schedule:
-    - cron: '*/30 * * * *'  # toutes les 30 minutes
-  workflow_dispatch:  # permet de lancer manuellement
+    - cron: "*/30 * * * *"   # toutes les 30 minutes
+  workflow_dispatch:
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.12'
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
+      - name: Install dependencies if requirements.txt exists
+        run: |
+          if [ -f "requirements.txt" ]; then
+            pip install -r requirements.txt
+          fi
 
-      - name: Run bot
-        env:
-          WATCH_URL: ${{ secrets.WATCH_URL }}
-          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python carwatcher.py
+      - name: Debug: show git info & workspace
+        run: |
+          echo "=== Git info ==="
+          git --no-pager log -1 --pretty=fuller || true
+          echo "Branch: $GITHUB_REF"
+          echo "Commit: $GITHUB_SHA"
+          echo "=== ls -la workspace ==="
+          pwd
+          ls -la
+          echo "=== ls -R (root) ==="
+          ls -R | sed -n '1,200p'
+          echo "=== Show carwatcher.py content (if present) ==="
+          if [ -f carwatcher.py ]; then
+            ec
