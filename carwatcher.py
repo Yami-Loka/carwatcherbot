@@ -1,5 +1,6 @@
 import os
 import time
+import random
 import requests
 from bs4 import BeautifulSoup
 
@@ -9,12 +10,19 @@ TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 # --- Paramètres de contrôle ---
-MAX_RETRIES = 3           # nombre max de tentatives en cas de 429
-BACKOFF_FACTOR = 15       # temps d'attente en secondes entre retries
-SLEEP_BETWEEN_REQUESTS = 5  # pour éviter de spammer le serveur
+MAX_RETRIES = 5
+BASE_BACKOFF = 10           # temps de base pour backoff exponentiel
+SLEEP_BETWEEN_REQUESTS = 5  # pause entre les requêtes
 
+# --- User-Agent rotatif ---
+USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_5_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Safari/605.1.15",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+]
+
+# --- Fonction pour Telegram ---
 def send_telegram(msg):
-    """Envoie un message sur Telegram"""
     try:
         requests.post(
             f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
@@ -24,17 +32,10 @@ def send_telegram(msg):
     except Exception as e:
         print(f"[WARN] Impossible d'envoyer le message Telegram : {e}")
 
+# --- Récupération liste voitures ---
 def fetch_car_list():
-    """Récupère la liste des voitures avec gestion du 429 et retries"""
-    headers = {
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/120.0 Safari/537.36"
-        )
-    }
-
     for attempt in range(1, MAX_RETRIES + 1):
+        headers = {"User-Agent": random.choice(USER_AGENTS)}
         try:
             r = requests.get(URL, headers=headers, timeout=10)
 
@@ -44,7 +45,7 @@ def fetch_car_list():
                 return [o.get_text(strip=True) for o in options if o.get_text(strip=True)]
 
             elif r.status_code == 429:
-                wait = attempt * BACKOFF_FACTOR
+                wait = BASE_BACKOFF * (2 ** (attempt - 1)) + random.randint(0, 5)
                 print(f"[WARN] 429 Too Many Requests – retry in {wait}s (attempt {attempt}/{MAX_RETRIES})")
                 time.sleep(wait)
                 continue
@@ -61,8 +62,9 @@ def fetch_car_list():
     return None
 
 def main():
-    # --- Récupération de la liste précédente ---
     last_list_file = "last_list.txt"
+
+    # --- Récupération liste précédente ---
     if os.path.exists(last_list_file):
         with open(last_list_file, "r", encoding="utf-8") as f:
             last_list = [line.strip() for line in f.readlines()]
@@ -74,7 +76,7 @@ def main():
         print("[WARN] Impossible de récupérer la liste actuelle. Fin du script.")
         return
 
-    # --- Comparaison pour détecter changements ---
+    # --- Comparaison et notification uniquement si changement réel ---
     added = [c for c in current_list if c not in last_list]
     removed = [c for c in last_list if c not in current_list]
 
@@ -85,14 +87,14 @@ def main():
         if removed:
             msg += "🔴 Retirés :\n" + "\n".join("• " + r for r in removed) + "\n"
         msg += "📋 Liste actuelle :\n" + "\n".join("• " + c for c in current_list)
-
         send_telegram(msg)
     else:
-        print("Aucun changement détecté.")
+        print("✅ Aucun changement détecté.")
 
-    # --- Sauvegarde de la liste actuelle pour la prochaine exécution ---
+    # --- Sauvegarde liste actuelle pour prochaine exécution ---
     with open(last_list_file, "w", encoding="utf-8") as f:
         f.write("\n".join(current_list))
 
 if __name__ == "__main__":
     main()
+
